@@ -8,7 +8,9 @@
     "omnifocus-mcp": "index.js"
   },
   "files": [
-    "index.js"
+    "index.js",
+    "lib/",
+    "tools/"
   ],
   "scripts": {
     "start": "node index.js"
