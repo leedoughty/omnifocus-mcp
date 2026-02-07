@@ -1,11 +1,12 @@
 # omnifocus-mcp
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that gives AI assistants read-only access to your [OmniFocus](https://www.omnigroup.com/omnifocus/) tasks and projects. Built with the official MCP SDK and macOS JavaScript for Automation (JXA).
+A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that gives AI assistants access to your [OmniFocus](https://www.omnigroup.com/omnifocus/) tasks and projects. Built with the official MCP SDK and macOS JavaScript for Automation (JXA).
 
 ## Features
 
 - **Query tasks** - retrieve incomplete tasks with optional filtering by project, tag, or flagged status
 - **List projects** - get all active projects with their incomplete task counts
+- **Complete tasks** - mark tasks as complete with safety checks (exact name + project match, rejects ambiguous matches)
 - **Case-insensitive partial matching** - flexible filtering that doesn't require exact names
 
 ## Prerequisites
@@ -76,6 +77,21 @@ Returns all active projects with their incomplete task counts.
 - Errands (3 tasks)
 - Home Renovation (7 tasks)
 ```
+
+### `omnifocus_complete_task`
+
+Mark a task as complete in OmniFocus. Requires exact task name and project name to avoid accidental completions. Refuses to act if multiple tasks match the same name within the project.
+
+| Parameter   | Type   | Description                                      |
+| ----------- | ------ | ------------------------------------------------ |
+| `task_name` | string | Exact name of the task to complete               |
+| `project`   | string | Exact name of the project the task belongs to    |
+
+**Safety behaviour:**
+
+- No match found → returns error
+- Multiple matches → returns error with count, completes nothing
+- Exactly one match → completes the task and returns confirmation
 
 ## License
 
