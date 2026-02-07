@@ -1,0 +1,36 @@
+{
+  "name": "omnifocus-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server for reading OmniFocus tasks and projects via AppleScript",
+  "main": "index.js",
+  "bin": {
+    "omnifocus-mcp": "index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "mcp",
+    "omnifocus",
+    "model-context-protocol",
+    "applescript",
+    "jxa",
+    "task-management",
+    "productivity"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "os": [
+    "darwin"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^4.3.6"
+  }
+}
