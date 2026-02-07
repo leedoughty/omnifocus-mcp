@@ -6,6 +6,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 
 - **Query tasks** - retrieve incomplete tasks with optional filtering by project, tag, or flagged status
 - **List projects** - get all active projects with their incomplete task counts
+- **Add tasks** - create tasks with optional project, due date, tags, notes, and flagged status
 - **Complete tasks** - mark tasks as complete with safety checks (exact name + project match, rejects ambiguous matches)
 - **Case-insensitive partial matching** - flexible filtering that doesn't require exact names
 
@@ -92,6 +93,28 @@ Mark a task as complete in OmniFocus. Requires exact task name and project name 
 - No match found → returns error
 - Multiple matches → returns error with count, completes nothing
 - Exactly one match → completes the task and returns confirmation
+
+### `omnifocus_add_task`
+
+Add a new task to OmniFocus. If no project is specified, the task goes to the Inbox.
+
+| Parameter   | Type               | Description                                                                |
+| ----------- | ------------------ | -------------------------------------------------------------------------- |
+| `task_name` | string             | Name of the task to create                                                 |
+| `project`   | string (optional)  | Exact project name. If omitted, task goes to Inbox                         |
+| `note`      | string (optional)  | Note or description text                                                   |
+| `due_date`  | string (optional)  | Due date in ISO 8601 format (e.g., `2026-03-15` or `2026-03-15T17:00:00`) |
+| `tags`      | string[] (optional)| Tag names to apply. Non-existent tags are created automatically            |
+| `flagged`   | boolean (optional) | Whether to flag the task                                                   |
+
+**Example output:**
+
+```
+Created: "Buy biscuits"
+Project: Errands
+Due: 2026-03-20T00:00:00.000Z
+Tags: personal
+```
 
 ## License
 
