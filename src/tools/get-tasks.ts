@@ -1,7 +1,9 @@
 import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxa } from "../lib/jxa.js";
+import type { OmniFocusTask } from "../types.js";
 
-function formatTaskSummary(tasks) {
+function formatTaskSummary(tasks: OmniFocusTask[]): string {
   return tasks
     .map((t) => {
       const parts = [`- ${t.name}`];
@@ -26,7 +28,13 @@ export const schema = {
   flagged_only: z.boolean().optional().describe("Only return flagged tasks"),
 };
 
-export async function handler({ project, tag, flagged_only }) {
+type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
+
+export async function handler({
+  project,
+  tag,
+  flagged_only,
+}: HandlerArgs): Promise<CallToolResult> {
   try {
     const jxa = `
       function run() {
@@ -56,7 +64,7 @@ export async function handler({ project, tag, flagged_only }) {
     `;
 
     const raw = await runJxa(jxa);
-    let tasks = JSON.parse(raw);
+    let tasks = JSON.parse(raw) as OmniFocusTask[];
 
     if (flagged_only) {
       tasks = tasks.filter((t) => t.flagged);
@@ -65,7 +73,7 @@ export async function handler({ project, tag, flagged_only }) {
     if (project) {
       const p = project.toLowerCase();
       tasks = tasks.filter(
-        (t) => t.project && t.project.toLowerCase().includes(p),
+        (t) => t.project != null && t.project.toLowerCase().includes(p),
       );
     }
 
@@ -86,7 +94,12 @@ export async function handler({ project, tag, flagged_only }) {
   } catch (error) {
     return {
       isError: true,
-      content: [{ type: "text", text: error.message }],
+      content: [
+        {
+          type: "text",
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
     };
   }
 }

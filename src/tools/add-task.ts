@@ -1,5 +1,7 @@
 import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxa, escapeJxa } from "../lib/jxa.js";
+import type { OmniFocusAddResult, OmniFocusAddError } from "../types.js";
 
 export const schema = {
   task_name: z.string().min(1).describe("Name of the task to create"),
@@ -25,6 +27,8 @@ export const schema = {
   flagged: z.boolean().optional().describe("Whether to flag the task"),
 };
 
+type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
+
 export async function handler({
   task_name,
   project,
@@ -32,7 +36,7 @@ export async function handler({
   due_date,
   tags,
   flagged,
-}) {
+}: HandlerArgs): Promise<CallToolResult> {
   try {
     if (due_date !== undefined) {
       const parsed = new Date(due_date);
@@ -49,7 +53,7 @@ export async function handler({
       }
     }
 
-    const propsLines = [`name: '${escapeJxa(task_name)}'`];
+    const propsLines: string[] = [`name: '${escapeJxa(task_name)}'`];
     if (note !== undefined) {
       propsLines.push(`note: '${escapeJxa(note)}'`);
     }
@@ -59,7 +63,7 @@ export async function handler({
       );
     }
     if (flagged !== undefined) {
-      propsLines.push(`flagged: ${flagged}`);
+      propsLines.push(`flagged: ${String(flagged)}`);
     }
 
     const projectBlock = project
@@ -128,9 +132,9 @@ export async function handler({
     `;
 
     const raw = await runJxa(jxa);
-    const result = JSON.parse(raw);
+    const result = JSON.parse(raw) as OmniFocusAddResult | OmniFocusAddError;
 
-    if (result.error === "project_not_found") {
+    if ("error" in result) {
       return {
         isError: true,
         content: [
@@ -142,7 +146,7 @@ export async function handler({
       };
     }
 
-    const parts = [`Created: "${result.name}"`];
+    const parts: string[] = [`Created: "${result.name}"`];
     if (result.project) parts.push(`Project: ${result.project}`);
     else parts.push("Project: Inbox");
     if (result.flagged) parts.push("Flagged: yes");
@@ -155,7 +159,12 @@ export async function handler({
   } catch (error) {
     return {
       isError: true,
-      content: [{ type: "text", text: error.message }],
+      content: [
+        {
+          type: "text",
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
     };
   }
 }

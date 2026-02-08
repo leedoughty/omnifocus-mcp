@@ -1,8 +1,10 @@
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxa } from "../lib/jxa.js";
+import type { OmniFocusProject } from "../types.js";
 
 export const schema = {};
 
-export async function handler() {
+export async function handler(): Promise<CallToolResult> {
   try {
     const jxa = `
       function run() {
@@ -24,7 +26,7 @@ export async function handler() {
     `;
 
     const raw = await runJxa(jxa);
-    const projects = JSON.parse(raw);
+    const projects = JSON.parse(raw) as OmniFocusProject[];
 
     const summary = projects
       .map((p) => `- ${p.name} (${p.taskCount} tasks)`)
@@ -38,7 +40,12 @@ export async function handler() {
   } catch (error) {
     return {
       isError: true,
-      content: [{ type: "text", text: error.message }],
+      content: [
+        {
+          type: "text",
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
     };
   }
 }

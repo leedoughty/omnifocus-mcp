@@ -3,17 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "description": "MCP server for reading OmniFocus tasks and projects via AppleScript",
-  "main": "index.js",
+  "main": "dist/index.js",
   "bin": {
-    "omnifocus-mcp": "index.js"
+    "omnifocus-mcp": "dist/index.js"
   },
   "files": [
-    "index.js",
-    "lib/",
-    "tools/"
+    "dist/"
   ],
   "scripts": {
-    "start": "node index.js"
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "keywords": [
     "mcp",
@@ -34,5 +33,9 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.7.0"
   }
 }

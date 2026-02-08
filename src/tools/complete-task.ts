@@ -1,5 +1,7 @@
 import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxa, escapeJxa } from "../lib/jxa.js";
+import type { OmniFocusCompleteResult, OmniFocusCompleteError } from "../types.js";
 
 export const schema = {
   task_name: z.string().describe("Exact name of the task to complete"),
@@ -8,7 +10,12 @@ export const schema = {
     .describe("Exact name of the project the task belongs to"),
 };
 
-export async function handler({ task_name, project }) {
+type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
+
+export async function handler({
+  task_name,
+  project,
+}: HandlerArgs): Promise<CallToolResult> {
   try {
     const escapedName = escapeJxa(task_name);
     const escapedProject = escapeJxa(project);
@@ -49,21 +56,21 @@ export async function handler({ task_name, project }) {
     `;
 
     const raw = await runJxa(jxa);
-    const result = JSON.parse(raw);
+    const result = JSON.parse(raw) as OmniFocusCompleteResult | OmniFocusCompleteError;
 
-    if (result.error === "no_match") {
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: `No incomplete task found matching "${task_name}" in project "${project}".`,
-          },
-        ],
-      };
-    }
+    if ("error" in result) {
+      if (result.error === "no_match") {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `No incomplete task found matching "${task_name}" in project "${project}".`,
+            },
+          ],
+        };
+      }
 
-    if (result.error === "multiple_matches") {
       return {
         isError: true,
         content: [
@@ -89,7 +96,12 @@ export async function handler({ task_name, project }) {
   } catch (error) {
     return {
       isError: true,
-      content: [{ type: "text", text: error.message }],
+      content: [
+        {
+          type: "text",
+          text: error instanceof Error ? error.message : String(error),
+        },
+      ],
     };
   }
 }

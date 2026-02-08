@@ -10,8 +10,8 @@ import * as completeTask from "./tools/complete-task.js";
 import * as addTask from "./tools/add-task.js";
 
 const { version } = JSON.parse(
-  await readFile(new URL("./package.json", import.meta.url), "utf-8"),
-);
+  await readFile(new URL("../package.json", import.meta.url), "utf-8"),
+) as { version: string };
 
 const server = new McpServer({
   name: "omnifocus-mcp",

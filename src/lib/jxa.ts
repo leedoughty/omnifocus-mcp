@@ -4,16 +4,14 @@ const OSASCRIPT_TIMEOUT_MS = 30_000;
 
 /**
  * Execute a JXA (JavaScript for Automation) script via osascript.
- * @param {string} script - JXA source code to evaluate
- * @returns {Promise<string>} Trimmed stdout from osascript
  */
-export function runJxa(script) {
+export function runJxa(script: string): Promise<string> {
   return new Promise((resolve, reject) => {
     execFile(
       "osascript",
       ["-l", "JavaScript", "-e", script],
       { timeout: OSASCRIPT_TIMEOUT_MS },
-      (error, stdout, stderr) => {
+      (error: Error | null, stdout: string, stderr: string) => {
         if (error) {
           reject(
             new Error(`OmniFocus query failed: ${stderr || error.message}`),
@@ -26,6 +24,6 @@ export function runJxa(script) {
   });
 }
 
-export function escapeJxa(str) {
+export function escapeJxa(str: string): string {
   return str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
