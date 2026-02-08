@@ -122,6 +122,7 @@ export async function handler({
 
         return JSON.stringify({
           created: true,
+          id: task.id(),
           name: task.name(),
           project: projName,
           flagged: task.flagged(),
@@ -146,7 +147,7 @@ export async function handler({
       };
     }
 
-    const parts: string[] = [`Created: "${result.name}"`];
+    const parts: string[] = [`Created: "${result.name}" (id: ${result.id})`];
     if (result.project) parts.push(`Project: ${result.project}`);
     else parts.push("Project: Inbox");
     if (result.flagged) parts.push("Flagged: yes");

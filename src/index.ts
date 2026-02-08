@@ -20,7 +20,7 @@ const server = new McpServer({
 
 server.tool(
   "omnifocus_get_tasks",
-  "Get incomplete tasks from OmniFocus. Returns task name, project, flagged status, due date, and tags.",
+  "Get incomplete tasks from OmniFocus. Returns task ID, name, project, flagged status, due date, and tags.",
   getTasks.schema,
   getTasks.handler,
 );
@@ -34,7 +34,7 @@ server.tool(
 
 server.tool(
   "omnifocus_complete_task",
-  "Mark a task as complete in OmniFocus. Requires exact task name and project name to avoid accidental completions. Refuses to act if multiple tasks match.",
+  "Mark a task as complete in OmniFocus. Accepts a task_id (preferred) or exact task_name + project. Refuses to act if multiple tasks match.",
   completeTask.schema,
   completeTask.handler,
 );

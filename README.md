@@ -7,7 +7,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 - **Query tasks** - retrieve incomplete tasks with optional filtering by project, tag, or flagged status
 - **List projects** - get all active projects with their incomplete task counts
 - **Add tasks** - create tasks with optional project, due date, tags, notes, and flagged status
-- **Complete tasks** - mark tasks as complete with safety checks (exact name + project match, rejects ambiguous matches)
+- **Complete tasks** - mark tasks as complete by ID (preferred) or exact name + project match, with safety checks
 - **Case-insensitive partial matching** - flexible filtering that doesn't require exact names
 
 ## Prerequisites
@@ -22,6 +22,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 git clone https://github.com/leedoughty/omnifocus-mcp.git
 cd omnifocus-mcp
 npm install
+npm run build
 ```
 
 ## Configuration
@@ -34,7 +35,7 @@ This server works with any MCP-compatible client. Below is an example for Claude
     "omnifocus": {
       "type": "stdio",
       "command": "node",
-      "args": ["/path/to/omnifocus-mcp/index.js"]
+      "args": ["/path/to/omnifocus-mcp/dist/index.js"]
     }
   }
 }
@@ -57,12 +58,12 @@ Returns incomplete tasks from OmniFocus.
 **Example output:**
 
 ```
-- Review pull requests
+- Review pull requests (id: abc123DEF)
   Project: Engineering
   Flagged: yes
   Due: 2026-03-15T17:00:00.000Z
   Tags: work, code-review
-- Buy biscuits
+- Buy biscuits (id: xyz789GHI)
   Project: Errands
   Tags: personal
 ```
@@ -81,12 +82,15 @@ Returns all active projects with their incomplete task counts.
 
 ### `omnifocus_complete_task`
 
-Mark a task as complete in OmniFocus. Requires exact task name and project name to avoid accidental completions. Refuses to act if multiple tasks match the same name within the project.
+Mark a task as complete in OmniFocus. Accepts a task ID (preferred) or exact task name + project. Refuses to act if multiple tasks match.
 
-| Parameter   | Type   | Description                                      |
-| ----------- | ------ | ------------------------------------------------ |
-| `task_name` | string | Exact name of the task to complete               |
-| `project`   | string | Exact name of the project the task belongs to    |
+| Parameter   | Type              | Description                                                    |
+| ----------- | ----------------- | -------------------------------------------------------------- |
+| `task_id`   | string (optional) | OmniFocus task ID (returned by `get_tasks`). Preferred method. |
+| `task_name` | string (optional) | Exact name of the task to complete                             |
+| `project`   | string (optional) | Exact name of the project the task belongs to                  |
+
+Provide either `task_id`, or both `task_name` and `project`.
 
 **Safety behaviour:**
 
@@ -110,7 +114,7 @@ Add a new task to OmniFocus. If no project is specified, the task goes to the In
 **Example output:**
 
 ```
-Created: "Buy biscuits"
+Created: "Buy biscuits" (id: xyz789GHI)
 Project: Errands
 Due: 2026-03-20T00:00:00.000Z
 Tags: personal

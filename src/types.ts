@@ -1,4 +1,5 @@
 export interface OmniFocusTask {
+  id: string;
   name: string;
   project: string | null;
   flagged: boolean;
@@ -13,6 +14,7 @@ export interface OmniFocusProject {
 
 export interface OmniFocusCompleteResult {
   completed: true;
+  id: string;
   name: string;
   project: string;
   tags: string[];
@@ -25,6 +27,7 @@ export interface OmniFocusCompleteError {
 
 export interface OmniFocusAddResult {
   created: true;
+  id: string;
   name: string;
   project: string | null;
   flagged: boolean;
