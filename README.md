@@ -7,6 +7,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 - **Query tasks** - retrieve incomplete tasks with optional filtering by project, tag, or flagged status
 - **List projects** - get all active projects with their incomplete task counts
 - **Add tasks** - create tasks with optional project, due date, tags, notes, and flagged status
+- **Update tasks** - modify name, due date, flagged status, note, and tags on existing tasks by ID
 - **Complete tasks** - mark tasks as complete by ID (preferred) or exact name + project match, with safety checks
 - **Case-insensitive partial matching** - flexible filtering that doesn't require exact names
 
@@ -116,10 +117,35 @@ Add a new task to OmniFocus. If no project is specified, the task goes to the In
 **Example output:**
 
 ```
-Created: "Buy biscuits" (id: xyz789GHI)
+Created: "Buy biscuits"
+ID: xyz789GHI
 Project: Errands
 Due: 2026-03-20T00:00:00.000Z
 Tags: personal
+```
+
+### `omnifocus_update_task`
+
+Update an existing task in OmniFocus by ID. Only provided fields are changed.
+
+| Parameter   | Type                       | Description                                                                  |
+| ----------- | -------------------------- | ---------------------------------------------------------------------------- |
+| `task_id`   | string                     | OmniFocus task ID (returned by `get_tasks`)                                  |
+| `name`      | string (optional)          | New name for the task                                                        |
+| `due_date`  | string \| null (optional)  | New due date in ISO 8601 format, or `null` to clear                          |
+| `flagged`   | boolean (optional)         | Set flagged status                                                           |
+| `note`      | string \| null (optional)  | New note text, or `null` to clear                                            |
+| `tags`      | string[] (optional)        | Replace all tags with this list. Non-existent tags are created automatically |
+
+**Example output:**
+
+```
+Updated: "Buy biscuits"
+ID: xyz789GHI
+Project: Errands
+Flagged: yes
+Due: 2026-03-20T00:00:00.000Z
+Tags: personal, urgent
 ```
 
 ## License

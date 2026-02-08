@@ -39,3 +39,17 @@ export interface OmniFocusAddError {
   error: "project_not_found";
   projectName: string;
 }
+
+export interface OmniFocusUpdateResult {
+  updated: true;
+  id: string;
+  name: string;
+  project: string | null;
+  flagged: boolean;
+  dueDate: string | null;
+  tags: string[];
+}
+
+export interface OmniFocusUpdateError {
+  error: "not_found";
+}

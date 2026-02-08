@@ -131,7 +131,8 @@ export async function handler({
       };
     }
 
-    const parts: string[] = [`Created: "${result.name}" (id: ${result.id})`];
+    const parts: string[] = [`Created: "${result.name}"`];
+    parts.push(`ID: ${result.id}`);
     if (result.project) parts.push(`Project: ${result.project}`);
     else parts.push("Project: Inbox");
     if (result.flagged) parts.push("Flagged: yes");
