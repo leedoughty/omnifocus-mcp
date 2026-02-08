@@ -58,12 +58,14 @@ Returns incomplete tasks from OmniFocus.
 **Example output:**
 
 ```
-- Review pull requests (id: abc123DEF)
+- Review pull requests
+  ID: abc123DEF
   Project: Engineering
   Flagged: yes
   Due: 2026-03-15T17:00:00.000Z
   Tags: work, code-review
-- Buy biscuits (id: xyz789GHI)
+- Buy biscuits
+  ID: xyz789GHI
   Project: Errands
   Tags: personal
 ```

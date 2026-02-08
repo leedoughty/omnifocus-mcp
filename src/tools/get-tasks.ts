@@ -6,7 +6,8 @@ import type { OmniFocusTask } from "../types.js";
 function formatTaskSummary(tasks: OmniFocusTask[]): string {
   return tasks
     .map((t) => {
-      const parts = [`- ${t.name} (id: ${t.id})`];
+      const parts = [`- ${t.name}`];
+      parts.push(`  ID: ${t.id}`);
       if (t.project) parts.push(`  Project: ${t.project}`);
       if (t.flagged) parts.push(`  Flagged: yes`);
       if (t.dueDate) parts.push(`  Due: ${t.dueDate}`);
