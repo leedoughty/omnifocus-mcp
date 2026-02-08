@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { runJxa, escapeJxa } from "../lib/jxa.js";
+import { runJxaWithData } from "../lib/jxa.js";
 import type { OmniFocusAddResult, OmniFocusAddError } from "../types.js";
 
 export const schema = {
@@ -53,65 +53,49 @@ export async function handler({
       }
     }
 
-    const propsLines: string[] = [`name: '${escapeJxa(task_name)}'`];
-    if (note !== undefined) {
-      propsLines.push(`note: '${escapeJxa(note)}'`);
-    }
-    if (due_date !== undefined) {
-      propsLines.push(
-        `dueDate: new Date('${escapeJxa(new Date(due_date).toISOString())}')`,
-      );
-    }
-    if (flagged !== undefined) {
-      propsLines.push(`flagged: ${String(flagged)}`);
-    }
-
-    const projectBlock = project
-      ? `
-        const projects = doc.flattenedProjects.whose({name: '${escapeJxa(project)}'})();
-        if (projects.length === 0) {
-          return JSON.stringify({error: 'project_not_found', projectName: '${escapeJxa(project)}'});
-        }
-        projects[0].tasks.push(task);
-      `
-      : `
-        doc.inboxTasks.push(task);
-      `;
-
-    let tagsBlock = "";
-    if (tags && tags.length > 0) {
-      const tagLookups = tags
-        .map((t) => {
-          const escaped = escapeJxa(t);
-          return `
-          (() => {
-            const existing = doc.flattenedTags.whose({name: '${escaped}'})();
-            if (existing.length > 0) return existing[0];
-            const newTag = app.Tag({name: '${escaped}'});
-            doc.tags.push(newTag);
-            return doc.flattenedTags.whose({name: '${escaped}'})()[0];
-          })()`;
-        })
-        .join(",");
-
-      tagsBlock = `
-        const resolvedTags = [${tagLookups}];
-        resolvedTags.forEach(tag => app.add(tag, {to: task.tags}));
-      `;
-    }
+    const data = {
+      taskName: task_name,
+      project: project ?? null,
+      note: note ?? null,
+      dueDate: due_date ? new Date(due_date).toISOString() : null,
+      tags: tags ?? [],
+      flagged: flagged ?? null,
+    };
 
     const jxa = `
       function run() {
         const app = Application('OmniFocus');
         const doc = app.defaultDocument();
 
-        const task = app.Task({
-          ${propsLines.join(",\n          ")}
+        const props = { name: __DATA__.taskName };
+        if (__DATA__.note !== null) props.note = __DATA__.note;
+        if (__DATA__.dueDate !== null) props.dueDate = new Date(__DATA__.dueDate);
+        if (__DATA__.flagged !== null) props.flagged = __DATA__.flagged;
+
+        const task = app.Task(props);
+
+        if (__DATA__.project !== null) {
+          const projects = doc.flattenedProjects.whose({name: __DATA__.project})();
+          if (projects.length === 0) {
+            return JSON.stringify({error: 'project_not_found', projectName: __DATA__.project});
+          }
+          projects[0].tasks.push(task);
+        } else {
+          doc.inboxTasks.push(task);
+        }
+
+        __DATA__.tags.forEach(function(tagName) {
+          const existing = doc.flattenedTags.whose({name: tagName})();
+          let tagObj;
+          if (existing.length > 0) {
+            tagObj = existing[0];
+          } else {
+            const newTag = app.Tag({name: tagName});
+            doc.tags.push(newTag);
+            tagObj = doc.flattenedTags.whose({name: tagName})()[0];
+          }
+          app.add(tagObj, {to: task.tags});
         });
-
-        ${projectBlock}
-
-        ${tagsBlock}
 
         let dueDate = null;
         try { const d = task.dueDate(); if (d) dueDate = d.toISOString(); } catch(e) {}
@@ -132,7 +116,7 @@ export async function handler({
       }
     `;
 
-    const raw = await runJxa(jxa);
+    const raw = await runJxaWithData(jxa, data);
     const result = JSON.parse(raw) as OmniFocusAddResult | OmniFocusAddError;
 
     if ("error" in result) {

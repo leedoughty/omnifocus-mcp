@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { runJxa, escapeJxa } from "../lib/jxa.js";
+import { runJxa, runJxaWithData } from "../lib/jxa.js";
 import type { OmniFocusTask } from "../types.js";
 
 function formatTaskSummary(tasks: OmniFocusTask[]): string {
@@ -65,17 +65,15 @@ export async function handler({
     let postFilter = "";
 
     if (project && tag) {
-      const escapedProject = escapeJxa(project);
-      const escapedTag = escapeJxa(tag);
       fetchBlock = `
-        const projects = doc.flattenedProjects.whose({name: {_contains: '${escapedProject}'}})();
+        const projects = doc.flattenedProjects.whose({name: {_contains: __DATA__.project}})();
         let tasks = [];
         for (const p of projects) {
           tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
         }
       `;
       postFilter = `
-        const tagFilter = '${escapedTag}'.toLowerCase();
+        const tagFilter = __DATA__.tag.toLowerCase();
         tasks = tasks.filter(t => {
           try {
             return t.tags().some(tag => tag.name().toLowerCase().indexOf(tagFilter) !== -1);
@@ -83,18 +81,16 @@ export async function handler({
         });
       `;
     } else if (project) {
-      const escapedProject = escapeJxa(project);
       fetchBlock = `
-        const projects = doc.flattenedProjects.whose({name: {_contains: '${escapedProject}'}})();
+        const projects = doc.flattenedProjects.whose({name: {_contains: __DATA__.project}})();
         let tasks = [];
         for (const p of projects) {
           tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
         }
       `;
     } else if (tag) {
-      const escapedTag = escapeJxa(tag);
       fetchBlock = `
-        const tags = doc.flattenedTags.whose({name: {_contains: '${escapedTag}'}})();
+        const tags = doc.flattenedTags.whose({name: {_contains: __DATA__.tag}})();
         let tasks = [];
         for (const tg of tags) {
           tasks = tasks.concat(tg.tasks.whose(${whoseClause})());
@@ -120,7 +116,11 @@ export async function handler({
       }
     `;
 
-    const raw = await runJxa(jxa);
+    const data = { project: project ?? null, tag: tag ?? null };
+    const needsData = project || tag;
+    const raw = needsData
+      ? await runJxaWithData(jxa, data)
+      : await runJxa(jxa);
     const tasks = JSON.parse(raw) as OmniFocusTask[];
 
     const summary = formatTaskSummary(tasks);

@@ -24,6 +24,14 @@ export function runJxa(script: string): Promise<string> {
   });
 }
 
-export function escapeJxa(str: string): string {
-  return str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+/**
+ * Execute a JXA script with data passed safely via JSON.stringify.
+ * Data is available inside the script as `__DATA__`.
+ */
+export function runJxaWithData(
+  script: string,
+  data: Record<string, unknown>,
+): Promise<string> {
+  const dataDecl = `const __DATA__ = ${JSON.stringify(data)};`;
+  return runJxa(`${dataDecl}\n${script}`);
 }

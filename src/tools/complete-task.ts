@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { runJxa, escapeJxa } from "../lib/jxa.js";
+import { runJxaWithData } from "../lib/jxa.js";
 import type { OmniFocusCompleteResult, OmniFocusCompleteError } from "../types.js";
 
 export const schema = {
@@ -41,14 +41,15 @@ export async function handler({
     }
 
     let jxa: string;
+    let data: Record<string, unknown>;
 
     if (task_id) {
-      const escapedId = escapeJxa(task_id);
+      data = { taskId: task_id };
       jxa = `
         function run() {
           const app = Application('OmniFocus');
           const doc = app.defaultDocument();
-          const task = doc.flattenedTasks.byId('${escapedId}');
+          const task = doc.flattenedTasks.byId(__DATA__.taskId);
 
           let taskName;
           try { taskName = task.name(); } catch(e) {
@@ -76,8 +77,7 @@ export async function handler({
         }
       `;
     } else {
-      const escapedName = escapeJxa(task_name!);
-      const escapedProject = escapeJxa(project!);
+      data = { taskName: task_name, project };
       jxa = `
         function run() {
           const app = Application('OmniFocus');
@@ -85,10 +85,10 @@ export async function handler({
           const tasks = doc.flattenedTasks.whose({completed: false})();
 
           const matches = tasks.filter(t => {
-            if (t.name() !== '${escapedName}') return false;
+            if (t.name() !== __DATA__.taskName) return false;
             let projName = null;
             try { projName = t.containingProject().name(); } catch(e) {}
-            return projName === '${escapedProject}';
+            return projName === __DATA__.project;
           });
 
           if (matches.length === 0) {
@@ -101,6 +101,8 @@ export async function handler({
           const task = matches[0];
           app.markComplete(task);
 
+          let projName = null;
+          try { projName = task.containingProject().name(); } catch(e) {}
           let tagNames = [];
           try { tagNames = task.tags().map(tag => tag.name()); } catch(e) {}
 
@@ -108,14 +110,14 @@ export async function handler({
             completed: true,
             id: task.id(),
             name: task.name(),
-            project: '${escapedProject}',
+            project: projName,
             tags: tagNames
           });
         }
       `;
     }
 
-    const raw = await runJxa(jxa);
+    const raw = await runJxaWithData(jxa, data);
     const result = JSON.parse(raw) as OmniFocusCompleteResult | OmniFocusCompleteError;
 
     if ("error" in result) {
