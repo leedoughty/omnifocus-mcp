@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { runJxa } from "../lib/jxa.js";
+import { runJxa, escapeJxa } from "../lib/jxa.js";
 import type { OmniFocusTask } from "../types.js";
 
 function formatTaskSummary(tasks: OmniFocusTask[]): string {
@@ -30,67 +30,102 @@ export const schema = {
 
 type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
 
+const MAP_TASK = `
+  function mapTask(t) {
+    let projName = null;
+    try { projName = t.containingProject().name(); } catch(e) {}
+    let dueDate = null;
+    try { const d = t.dueDate(); if (d) dueDate = d.toISOString(); } catch(e) {}
+    let tagNames = [];
+    try { tagNames = t.tags().map(tag => tag.name()); } catch(e) {}
+
+    return {
+      id: t.id(),
+      name: t.name(),
+      project: projName,
+      flagged: t.flagged(),
+      dueDate: dueDate,
+      tags: tagNames
+    };
+  }
+`;
+
 export async function handler({
   project,
   tag,
   flagged_only,
 }: HandlerArgs): Promise<CallToolResult> {
   try {
+    const whoseClause = flagged_only
+      ? "{completed: false, flagged: true}"
+      : "{completed: false}";
+
+    let fetchBlock: string;
+    let postFilter = "";
+
+    if (project && tag) {
+      const escapedProject = escapeJxa(project);
+      const escapedTag = escapeJxa(tag);
+      fetchBlock = `
+        const projects = doc.flattenedProjects.whose({name: {_contains: '${escapedProject}'}})();
+        let tasks = [];
+        for (const p of projects) {
+          tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
+        }
+      `;
+      postFilter = `
+        const tagFilter = '${escapedTag}'.toLowerCase();
+        tasks = tasks.filter(t => {
+          try {
+            return t.tags().some(tag => tag.name().toLowerCase().indexOf(tagFilter) !== -1);
+          } catch(e) { return false; }
+        });
+      `;
+    } else if (project) {
+      const escapedProject = escapeJxa(project);
+      fetchBlock = `
+        const projects = doc.flattenedProjects.whose({name: {_contains: '${escapedProject}'}})();
+        let tasks = [];
+        for (const p of projects) {
+          tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
+        }
+      `;
+    } else if (tag) {
+      const escapedTag = escapeJxa(tag);
+      fetchBlock = `
+        const tags = doc.flattenedTags.whose({name: {_contains: '${escapedTag}'}})();
+        let tasks = [];
+        for (const tg of tags) {
+          tasks = tasks.concat(tg.tasks.whose(${whoseClause})());
+        }
+      `;
+    } else {
+      fetchBlock = `
+        let tasks = doc.flattenedTasks.whose(${whoseClause})();
+      `;
+    }
+
     const jxa = `
       function run() {
         const app = Application('OmniFocus');
         const doc = app.defaultDocument();
-        const tasks = doc.flattenedTasks.whose({completed: false})();
 
-        const result = tasks.map(t => {
-          let projName = null;
-          try { projName = t.containingProject().name(); } catch(e) {}
-          let dueDate = null;
-          try { const d = t.dueDate(); if (d) dueDate = d.toISOString(); } catch(e) {}
-          let tagNames = [];
-          try { tagNames = t.tags().map(tag => tag.name()); } catch(e) {}
+        ${fetchBlock}
+        ${postFilter}
 
-          return {
-            id: t.id(),
-            name: t.name(),
-            project: projName,
-            flagged: t.flagged(),
-            dueDate: dueDate,
-            tags: tagNames
-          };
-        });
+        ${MAP_TASK}
 
-        return JSON.stringify(result);
+        return JSON.stringify(Array.from(tasks).map(mapTask));
       }
     `;
 
     const raw = await runJxa(jxa);
-    let tasks = JSON.parse(raw) as OmniFocusTask[];
-
-    if (flagged_only) {
-      tasks = tasks.filter((t) => t.flagged);
-    }
-
-    if (project) {
-      const p = project.toLowerCase();
-      tasks = tasks.filter(
-        (t) => t.project != null && t.project.toLowerCase().includes(p),
-      );
-    }
-
-    if (tag) {
-      const tg = tag.toLowerCase();
-      tasks = tasks.filter((t) =>
-        t.tags.some((name) => name.toLowerCase().includes(tg)),
-      );
-    }
+    const tasks = JSON.parse(raw) as OmniFocusTask[];
 
     const summary = formatTaskSummary(tasks);
 
     return {
-      content: [
-        { type: "text", text: summary || "No matching tasks found." },
-      ],
+      content: [{ type: "text", text: summary || "No matching tasks found." }],
     };
   } catch (error) {
     return {
