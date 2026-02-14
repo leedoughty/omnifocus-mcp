@@ -53,3 +53,16 @@ export interface OmniFocusUpdateResult {
 export interface OmniFocusUpdateError {
   error: "not_found";
 }
+
+export interface OmniFocusCreateProjectResult {
+  created: true;
+  id: string;
+  name: string;
+  type: string;
+  folder: string | null;
+}
+
+export interface OmniFocusCreateProjectError {
+  error: "folder_not_found";
+  folderName: string;
+}

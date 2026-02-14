@@ -8,6 +8,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 - **List projects** - get all active projects with their incomplete task counts
 - **Add tasks** - create tasks with optional project, due date, tags, notes, and flagged status
 - **Update tasks** - modify name, due date, flagged status, note, and tags on existing tasks by ID
+- **Create projects** - create new projects with optional type (parallel/sequential) and folder assignment
 - **Complete tasks** - mark tasks as complete by ID (preferred) or exact name + project match, with safety checks
 - **Case-insensitive filtering** - flexible filtering by project (exact match) or tag (partial match)
 
@@ -146,6 +147,25 @@ Project: Errands
 Flagged: yes
 Due: 2026-03-20T00:00:00.000Z
 Tags: personal, urgent
+```
+
+### `omnifocus_create_project`
+
+Create a new project in OmniFocus. Optionally set the project type and assign it to an existing folder.
+
+| Parameter      | Type              | Description                                                                                  |
+| -------------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| `project_name` | string            | Name of the project to create                                                                |
+| `type`         | string (optional) | `"parallel"` (default) or `"sequential"` — whether tasks can be completed in any order or not |
+| `folder`       | string (optional) | Exact name of an existing folder to add the project to. If omitted, added at the top level   |
+
+**Example output:**
+
+```
+Created project: "Home Renovation"
+ID: abc123DEF
+Type: parallel
+Folder: Personal
 ```
 
 ## License

@@ -9,6 +9,7 @@ import * as getProjects from "./tools/get-projects.js";
 import * as completeTask from "./tools/complete-task.js";
 import * as addTask from "./tools/add-task.js";
 import * as updateTask from "./tools/update-task.js";
+import * as createProject from "./tools/create-project.js";
 
 const { version } = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf-8"),
@@ -52,6 +53,13 @@ server.tool(
   "Update an existing task in OmniFocus by ID. Can change name, due date, flagged status, note, and tags.",
   updateTask.schema,
   updateTask.handler,
+);
+
+server.tool(
+  "omnifocus_create_project",
+  "Create a new project in OmniFocus. Optionally set the project type (parallel or sequential) and assign it to an existing folder.",
+  createProject.schema,
+  createProject.handler,
 );
 
 const transport = new StdioServerTransport();
