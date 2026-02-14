@@ -9,7 +9,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 - **Add tasks** - create tasks with optional project, due date, tags, notes, and flagged status
 - **Update tasks** - modify name, due date, flagged status, note, and tags on existing tasks by ID
 - **Complete tasks** - mark tasks as complete by ID (preferred) or exact name + project match, with safety checks
-- **Case-insensitive partial matching** - flexible filtering that doesn't require exact names
+- **Case-insensitive filtering** - flexible filtering by project (exact match) or tag (partial match)
 
 ## Prerequisites
 
@@ -52,7 +52,7 @@ Returns incomplete tasks from OmniFocus.
 
 | Parameter      | Type               | Description                                             |
 | -------------- | ------------------ | ------------------------------------------------------- |
-| `project`      | string (optional)  | Filter by project name (case-insensitive partial match) |
+| `project`      | string (optional)  | Filter by project name (case-insensitive exact match)   |
 | `tag`          | string (optional)  | Filter by tag name (case-insensitive partial match)     |
 | `flagged_only` | boolean (optional) | Only return flagged tasks                               |
 

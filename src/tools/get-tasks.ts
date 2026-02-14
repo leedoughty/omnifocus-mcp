@@ -21,7 +21,7 @@ export const schema = {
   project: z
     .string()
     .optional()
-    .describe("Filter by project name (case-insensitive partial match)"),
+    .describe("Filter by project name (case-insensitive exact match)"),
   tag: z
     .string()
     .optional()
@@ -66,9 +66,11 @@ export async function handler({
 
     if (project && tag) {
       fetchBlock = `
+        const projFilter = __DATA__.project.toLowerCase();
         const projects = doc.flattenedProjects.whose({name: {_contains: __DATA__.project}})();
+        const exactProjects = Array.from(projects).filter(p => p.name().toLowerCase() === projFilter);
         let tasks = [];
-        for (const p of projects) {
+        for (const p of exactProjects) {
           tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
         }
       `;
@@ -82,9 +84,11 @@ export async function handler({
       `;
     } else if (project) {
       fetchBlock = `
+        const projFilter = __DATA__.project.toLowerCase();
         const projects = doc.flattenedProjects.whose({name: {_contains: __DATA__.project}})();
+        const exactProjects = Array.from(projects).filter(p => p.name().toLowerCase() === projFilter);
         let tasks = [];
-        for (const p of projects) {
+        for (const p of exactProjects) {
           tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
         }
       `;
