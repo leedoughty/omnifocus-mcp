@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxaWithData } from "../lib/jxa.js";
+import { wrapHandler } from "../lib/wrap-handler.js";
 import type { OmniFocusCompleteResult, OmniFocusCompleteError } from "../types.js";
 
 export const schema = {
@@ -22,13 +23,12 @@ export const schema = {
 
 type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
 
-export async function handler({
+export const handler = wrapHandler(async ({
   task_id,
   task_name,
   project,
-}: HandlerArgs): Promise<CallToolResult> {
-  try {
-    if (!task_id && (!task_name || !project)) {
+}: HandlerArgs): Promise<CallToolResult> => {
+  if (!task_id && (!task_name || !project)) {
       return {
         isError: true,
         content: [
@@ -147,26 +147,15 @@ export async function handler({
       };
     }
 
-    const tags = result.tags.length
-      ? ` [${result.tags.join(", ")}]`
-      : "";
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Completed: "${result.name}" in ${result.project}${tags}`,
-        },
-      ],
-    };
-  } catch (error) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    };
-  }
-}
+  const tags = result.tags.length
+    ? ` [${result.tags.join(", ")}]`
+    : "";
+  return {
+    content: [
+      {
+        type: "text",
+        text: `Completed: "${result.name}" in ${result.project}${tags}`,
+      },
+    ],
+  };
+});

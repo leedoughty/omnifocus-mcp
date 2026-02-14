@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxaWithData } from "../lib/jxa.js";
+import { wrapHandler } from "../lib/wrap-handler.js";
 import type {
   OmniFocusCreateProjectResult,
   OmniFocusCreateProjectError,
@@ -24,13 +25,12 @@ export const schema = {
 
 type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
 
-export async function handler({
+export const handler = wrapHandler(async ({
   project_name,
   type,
   folder,
-}: HandlerArgs): Promise<CallToolResult> {
-  try {
-    const data = {
+}: HandlerArgs): Promise<CallToolResult> => {
+  const data = {
       projectName: project_name,
       sequential: (type ?? "parallel") === "sequential",
       folder: folder ?? null,
@@ -91,18 +91,7 @@ export async function handler({
     parts.push(`Type: ${result.type}`);
     if (result.folder) parts.push(`Folder: ${result.folder}`);
 
-    return {
-      content: [{ type: "text", text: parts.join("\n") }],
-    };
-  } catch (error) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    };
-  }
-}
+  return {
+    content: [{ type: "text", text: parts.join("\n") }],
+  };
+});

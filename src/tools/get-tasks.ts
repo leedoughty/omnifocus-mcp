@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxa, runJxaWithData } from "../lib/jxa.js";
+import { wrapHandler } from "../lib/wrap-handler.js";
 import type { OmniFocusTask } from "../types.js";
 
 function formatTaskSummary(tasks: OmniFocusTask[]): string {
@@ -51,13 +52,12 @@ const MAP_TASK = `
   }
 `;
 
-export async function handler({
+export const handler = wrapHandler(async ({
   project,
   tag,
   flagged_only,
-}: HandlerArgs): Promise<CallToolResult> {
-  try {
-    const whoseClause = flagged_only
+}: HandlerArgs): Promise<CallToolResult> => {
+  const whoseClause = flagged_only
       ? "{completed: false, flagged: true}"
       : "{completed: false}";
 
@@ -129,18 +129,7 @@ export async function handler({
 
     const summary = formatTaskSummary(tasks);
 
-    return {
-      content: [{ type: "text", text: summary || "No matching tasks found." }],
-    };
-  } catch (error) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    };
-  }
-}
+  return {
+    content: [{ type: "text", text: summary || "No matching tasks found." }],
+  };
+});

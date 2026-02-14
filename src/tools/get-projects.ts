@@ -1,12 +1,12 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxa } from "../lib/jxa.js";
+import { wrapHandler } from "../lib/wrap-handler.js";
 import type { OmniFocusProject } from "../types.js";
 
 export const schema = {};
 
-export async function handler(): Promise<CallToolResult> {
-  try {
-    const jxa = `
+export const handler = wrapHandler(async (): Promise<CallToolResult> => {
+  const jxa = `
       function run() {
         const app = Application('OmniFocus');
         const doc = app.defaultDocument();
@@ -32,20 +32,9 @@ export async function handler(): Promise<CallToolResult> {
       .map((p) => `- ${p.name} (${p.taskCount} tasks)`)
       .join("\n");
 
-    return {
-      content: [
-        { type: "text", text: summary || "No active projects found." },
-      ],
-    };
-  } catch (error) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    };
-  }
-}
+  return {
+    content: [
+      { type: "text", text: summary || "No active projects found." },
+    ],
+  };
+});

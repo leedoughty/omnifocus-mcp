@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runJxaWithData } from "../lib/jxa.js";
+import { wrapHandler } from "../lib/wrap-handler.js";
 import type { OmniFocusUpdateResult, OmniFocusUpdateError } from "../types.js";
 
 export const schema = {
@@ -29,16 +30,15 @@ export const schema = {
 
 type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
 
-export async function handler({
+export const handler = wrapHandler(async ({
   task_id,
   name,
   due_date,
   flagged,
   note,
   tags,
-}: HandlerArgs): Promise<CallToolResult> {
-  try {
-    const hasUpdate =
+}: HandlerArgs): Promise<CallToolResult> => {
+  const hasUpdate =
       name !== undefined ||
       due_date !== undefined ||
       flagged !== undefined ||
@@ -180,18 +180,7 @@ export async function handler({
     if (result.dueDate) parts.push(`Due: ${result.dueDate}`);
     if (result.tags.length) parts.push(`Tags: ${result.tags.join(", ")}`);
 
-    return {
-      content: [{ type: "text", text: parts.join("\n") }],
-    };
-  } catch (error) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    };
-  }
-}
+  return {
+    content: [{ type: "text", text: parts.join("\n") }],
+  };
+});
