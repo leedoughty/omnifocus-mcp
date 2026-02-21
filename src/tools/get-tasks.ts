@@ -52,14 +52,15 @@ const MAP_TASK = `
   }
 `;
 
-export const handler = wrapHandler(async ({
-  project,
-  tag,
-  flagged_only,
-}: HandlerArgs): Promise<CallToolResult> => {
-  const whoseClause = flagged_only
-      ? "{completed: false, flagged: true}"
-      : "{completed: false}";
+export const handler = wrapHandler(
+  async ({
+    project,
+    tag,
+    flagged_only,
+  }: HandlerArgs): Promise<CallToolResult> => {
+    const whoseClause = flagged_only
+      ? "{completed: false, dropped: false, flagged: true}"
+      : "{completed: false, dropped: false}";
 
     let fetchBlock: string;
     let postFilter = "";
@@ -122,14 +123,13 @@ export const handler = wrapHandler(async ({
 
     const data = { project: project ?? null, tag: tag ?? null };
     const needsData = project || tag;
-    const raw = needsData
-      ? await runJxaWithData(jxa, data)
-      : await runJxa(jxa);
+    const raw = needsData ? await runJxaWithData(jxa, data) : await runJxa(jxa);
     const tasks = JSON.parse(raw) as OmniFocusTask[];
 
     const summary = formatTaskSummary(tasks);
 
-  return {
-    content: [{ type: "text", text: summary || "No matching tasks found." }],
-  };
-});
+    return {
+      content: [{ type: "text", text: summary || "No matching tasks found." }],
+    };
+  },
+);
