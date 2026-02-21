@@ -10,6 +10,7 @@ import * as completeTask from "./tools/complete-task.js";
 import * as addTask from "./tools/add-task.js";
 import * as updateTask from "./tools/update-task.js";
 import * as createProject from "./tools/create-project.js";
+import * as getCompletedTasks from "./tools/get-completed-tasks.js";
 
 const { version } = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf-8"),
@@ -25,6 +26,13 @@ server.tool(
   "Get incomplete tasks from OmniFocus. Returns task ID, name, project, flagged status, due date, and tags.",
   getTasks.schema,
   getTasks.handler,
+);
+
+server.tool(
+  "omnifocus_get_completed_tasks",
+  "Get completed tasks from OmniFocus for a given time period. Returns task ID, name, project, flagged status, due date, completion date, and tags. Requires a 'since' date to bound the query.",
+  getCompletedTasks.schema,
+  getCompletedTasks.handler,
 );
 
 server.tool(

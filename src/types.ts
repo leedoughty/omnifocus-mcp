@@ -7,6 +7,10 @@ export interface OmniFocusTask {
   tags: string[];
 }
 
+export interface OmniFocusCompletedTask extends OmniFocusTask {
+  completionDate: string;
+}
+
 export interface OmniFocusProject {
   name: string;
   taskCount: number;

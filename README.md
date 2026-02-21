@@ -5,6 +5,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 ## Features
 
 - **Query tasks** - retrieve incomplete tasks with optional filtering by project, tag, or flagged status
+- **Query completed tasks** - retrieve completed tasks for a given time period with optional project/tag filtering
 - **List projects** - get all active projects with their incomplete task counts
 - **Add tasks** - create tasks with optional project, due date, tags, notes, and flagged status
 - **Update tasks** - modify name, due date, flagged status, note, and tags on existing tasks by ID
@@ -51,11 +52,11 @@ On first use, macOS will prompt you to grant the terminal permission to control 
 
 Returns incomplete tasks from OmniFocus.
 
-| Parameter      | Type               | Description                                             |
-| -------------- | ------------------ | ------------------------------------------------------- |
-| `project`      | string (optional)  | Filter by project name (case-insensitive exact match)   |
-| `tag`          | string (optional)  | Filter by tag name (case-insensitive partial match)     |
-| `flagged_only` | boolean (optional) | Only return flagged tasks                               |
+| Parameter      | Type               | Description                                           |
+| -------------- | ------------------ | ----------------------------------------------------- |
+| `project`      | string (optional)  | Filter by project name (case-insensitive exact match) |
+| `tag`          | string (optional)  | Filter by tag name (case-insensitive partial match)   |
+| `flagged_only` | boolean (optional) | Only return flagged tasks                             |
 
 **Example output:**
 
@@ -69,6 +70,31 @@ Returns incomplete tasks from OmniFocus.
 - Buy biscuits
   ID: xyz789GHI
   Project: Errands
+  Tags: personal
+```
+
+### `omnifocus_get_completed_tasks`
+
+Returns completed tasks from OmniFocus for a given time period. Requires a `since` date to bound the query.
+
+| Parameter | Type              | Description                                                                       |
+| --------- | ----------------- | --------------------------------------------------------------------------------- |
+| `since`   | string            | Return tasks completed on or after this date. ISO 8601 format (e.g. `2026-02-13`) |
+| `project` | string (optional) | Filter by project name (case-insensitive exact match)                             |
+| `tag`     | string (optional) | Filter by tag name (case-insensitive partial match)                               |
+
+**Example output:**
+
+```
+- Review pull requests
+  ID: abc123DEF
+  Project: Engineering
+  Completed: 2026-03-14T15:30:00.000Z
+  Tags: work, code-review
+- Buy biscuits
+  ID: xyz789GHI
+  Project: Errands
+  Completed: 2026-03-13T10:15:00.000Z
   Tags: personal
 ```
 
@@ -106,14 +132,14 @@ Provide either `task_id`, or both `task_name` and `project`.
 
 Add a new task to OmniFocus. If no project is specified, the task goes to the Inbox.
 
-| Parameter   | Type               | Description                                                                |
-| ----------- | ------------------ | -------------------------------------------------------------------------- |
-| `task_name` | string             | Name of the task to create                                                 |
-| `project`   | string (optional)  | Exact project name. If omitted, task goes to Inbox                         |
-| `note`      | string (optional)  | Note or description text                                                   |
-| `due_date`  | string (optional)  | Due date in ISO 8601 format (e.g., `2026-03-15` or `2026-03-15T17:00:00`) |
-| `tags`      | string[] (optional)| Tag names to apply. Non-existent tags are created automatically            |
-| `flagged`   | boolean (optional) | Whether to flag the task                                                   |
+| Parameter   | Type                | Description                                                               |
+| ----------- | ------------------- | ------------------------------------------------------------------------- |
+| `task_name` | string              | Name of the task to create                                                |
+| `project`   | string (optional)   | Exact project name. If omitted, task goes to Inbox                        |
+| `note`      | string (optional)   | Note or description text                                                  |
+| `due_date`  | string (optional)   | Due date in ISO 8601 format (e.g., `2026-03-15` or `2026-03-15T17:00:00`) |
+| `tags`      | string[] (optional) | Tag names to apply. Non-existent tags are created automatically           |
+| `flagged`   | boolean (optional)  | Whether to flag the task                                                  |
 
 **Example output:**
 
@@ -129,14 +155,14 @@ Tags: personal
 
 Update an existing task in OmniFocus by ID. Only provided fields are changed.
 
-| Parameter   | Type                       | Description                                                                  |
-| ----------- | -------------------------- | ---------------------------------------------------------------------------- |
-| `task_id`   | string                     | OmniFocus task ID (returned by `get_tasks`)                                  |
-| `name`      | string (optional)          | New name for the task                                                        |
-| `due_date`  | string \| null (optional)  | New due date in ISO 8601 format, or `null` to clear                          |
-| `flagged`   | boolean (optional)         | Set flagged status                                                           |
-| `note`      | string \| null (optional)  | New note text, or `null` to clear                                            |
-| `tags`      | string[] (optional)        | Replace all tags with this list. Non-existent tags are created automatically |
+| Parameter  | Type                      | Description                                                                  |
+| ---------- | ------------------------- | ---------------------------------------------------------------------------- |
+| `task_id`  | string                    | OmniFocus task ID (returned by `get_tasks`)                                  |
+| `name`     | string (optional)         | New name for the task                                                        |
+| `due_date` | string \| null (optional) | New due date in ISO 8601 format, or `null` to clear                          |
+| `flagged`  | boolean (optional)        | Set flagged status                                                           |
+| `note`     | string \| null (optional) | New note text, or `null` to clear                                            |
+| `tags`     | string[] (optional)       | Replace all tags with this list. Non-existent tags are created automatically |
 
 **Example output:**
 
@@ -153,11 +179,11 @@ Tags: personal, urgent
 
 Create a new project in OmniFocus. Optionally set the project type and assign it to an existing folder.
 
-| Parameter      | Type              | Description                                                                                  |
-| -------------- | ----------------- | -------------------------------------------------------------------------------------------- |
-| `project_name` | string            | Name of the project to create                                                                |
+| Parameter      | Type              | Description                                                                                   |
+| -------------- | ----------------- | --------------------------------------------------------------------------------------------- |
+| `project_name` | string            | Name of the project to create                                                                 |
 | `type`         | string (optional) | `"parallel"` (default) or `"sequential"` — whether tasks can be completed in any order or not |
-| `folder`       | string (optional) | Exact name of an existing folder to add the project to. If omitted, added at the top level   |
+| `folder`       | string (optional) | Exact name of an existing folder to add the project to. If omitted, added at the top level    |
 
 **Example output:**
 
