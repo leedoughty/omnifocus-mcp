@@ -11,6 +11,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 - **Update tasks** - modify name, due date, flagged status, note, and tags on existing tasks by ID
 - **Create projects** - create new projects with optional type (parallel/sequential) and folder assignment
 - **Complete tasks** - mark tasks as complete by ID (preferred) or exact name + project match, with safety checks
+- **List tags** - get all tags defined in OmniFocus
 - **Case-insensitive filtering** - flexible filtering by project (exact match) or tag (partial match)
 
 ## Prerequisites
@@ -192,6 +193,21 @@ Created project: "Home Renovation"
 ID: abc123DEF
 Type: parallel
 Folder: Personal
+```
+
+### `omnifocus_get_tags`
+
+Returns all tags from OmniFocus.
+
+**Example output:**
+
+```
+- High Priority
+- Waiting for
+- Errands
+- Full Focus
+- Quick Wins
+- On Hold
 ```
 
 ## License

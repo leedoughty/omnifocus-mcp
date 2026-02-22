@@ -11,6 +11,7 @@ import * as addTask from "./tools/add-task.js";
 import * as updateTask from "./tools/update-task.js";
 import * as createProject from "./tools/create-project.js";
 import * as getCompletedTasks from "./tools/get-completed-tasks.js";
+import * as getTags from "./tools/get-tags.js";
 
 const { version } = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf-8"),
@@ -68,6 +69,13 @@ server.tool(
   "Create a new project in OmniFocus. Optionally set the project type (parallel or sequential) and assign it to an existing folder.",
   createProject.schema,
   createProject.handler,
+);
+
+server.tool(
+  "omnifocus_get_tags",
+  "Get all tags from OmniFocus. Returns tag names.",
+  getTags.schema,
+  getTags.handler,
 );
 
 const transport = new StdioServerTransport();
