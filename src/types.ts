@@ -4,6 +4,8 @@ export interface OmniFocusTask {
   project: string | null;
   flagged: boolean;
   dueDate: string | null;
+  deferDate: string | null;
+  note: string;
   tags: string[];
 }
 
@@ -36,6 +38,8 @@ export interface OmniFocusAddResult {
   project: string | null;
   flagged: boolean;
   dueDate: string | null;
+  deferDate: string | null;
+  note: string;
   tags: string[];
 }
 
@@ -51,6 +55,8 @@ export interface OmniFocusUpdateResult {
   project: string | null;
   flagged: boolean;
   dueDate: string | null;
+  deferDate: string | null;
+  note: string;
   tags: string[];
 }
 

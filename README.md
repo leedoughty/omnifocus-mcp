@@ -4,11 +4,11 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that g
 
 ## Features
 
-- **Query tasks** - retrieve incomplete tasks with optional filtering by project, tag, or flagged status
-- **Query completed tasks** - retrieve completed tasks for a given time period with optional project/tag filtering
+- **Query tasks** - retrieve incomplete tasks with defer dates, notes, and more; filter by project, tag, or flagged status
+- **Query completed tasks** - retrieve completed tasks for a given time period with defer dates, notes, and optional project/tag filtering
 - **List projects** - get all active projects with their incomplete task counts
-- **Add tasks** - create tasks with optional project, due date, tags, notes, and flagged status
-- **Update tasks** - modify name, due date, flagged status, note, and tags on existing tasks by ID
+- **Add tasks** - create tasks with optional project, due date, defer date, tags, notes, and flagged status
+- **Update tasks** - modify name, due date, defer date, flagged status, note, and tags on existing tasks by ID
 - **Create projects** - create new projects with optional type (parallel/sequential) and folder assignment
 - **Complete tasks** - mark tasks as complete by ID (preferred) or exact name + project match, with safety checks
 - **List tags** - get all tags defined in OmniFocus
@@ -67,10 +67,12 @@ Returns incomplete tasks from OmniFocus.
   Project: Engineering
   Flagged: yes
   Due: 2026-03-15T17:00:00.000Z
+  Note: Check the auth refactor PR before release
   Tags: work, code-review
 - Buy biscuits
   ID: xyz789GHI
   Project: Errands
+  Defer: 2026-03-16T09:00:00.000Z
   Tags: personal
 ```
 
@@ -91,10 +93,12 @@ Returns completed tasks from OmniFocus for a given time period. Requires a `sinc
   ID: abc123DEF
   Project: Engineering
   Completed: 2026-03-14T15:30:00.000Z
+  Note: Check the auth refactor PR before release
   Tags: work, code-review
 - Buy biscuits
   ID: xyz789GHI
   Project: Errands
+  Defer: 2026-03-10T09:00:00.000Z
   Completed: 2026-03-13T10:15:00.000Z
   Tags: personal
 ```
@@ -133,14 +137,15 @@ Provide either `task_id`, or both `task_name` and `project`.
 
 Add a new task to OmniFocus. If no project is specified, the task goes to the Inbox.
 
-| Parameter   | Type                | Description                                                               |
-| ----------- | ------------------- | ------------------------------------------------------------------------- |
-| `task_name` | string              | Name of the task to create                                                |
-| `project`   | string (optional)   | Exact project name. If omitted, task goes to Inbox                        |
-| `note`      | string (optional)   | Note or description text                                                  |
-| `due_date`  | string (optional)   | Due date in ISO 8601 format (e.g., `2026-03-15` or `2026-03-15T17:00:00`) |
-| `tags`      | string[] (optional) | Tag names to apply. Non-existent tags are created automatically           |
-| `flagged`   | boolean (optional)  | Whether to flag the task                                                  |
+| Parameter    | Type                | Description                                                                         |
+| ------------ | ------------------- | ----------------------------------------------------------------------------------- |
+| `task_name`  | string              | Name of the task to create                                                          |
+| `project`    | string (optional)   | Exact project name. If omitted, task goes to Inbox                                  |
+| `note`       | string (optional)   | Note or description text                                                            |
+| `due_date`   | string (optional)   | Due date in ISO 8601 format (e.g., `2026-03-15` or `2026-03-15T17:00:00`)           |
+| `defer_date` | string (optional)   | Defer (start) date in ISO 8601 format (e.g., `2026-03-15` or `2026-03-15T17:00:00`) |
+| `tags`       | string[] (optional) | Tag names to apply. Non-existent tags are created automatically                     |
+| `flagged`    | boolean (optional)  | Whether to flag the task                                                            |
 
 **Example output:**
 
@@ -156,14 +161,15 @@ Tags: personal
 
 Update an existing task in OmniFocus by ID. Only provided fields are changed.
 
-| Parameter  | Type                      | Description                                                                  |
-| ---------- | ------------------------- | ---------------------------------------------------------------------------- |
-| `task_id`  | string                    | OmniFocus task ID (returned by `get_tasks`)                                  |
-| `name`     | string (optional)         | New name for the task                                                        |
-| `due_date` | string \| null (optional) | New due date in ISO 8601 format, or `null` to clear                          |
-| `flagged`  | boolean (optional)        | Set flagged status                                                           |
-| `note`     | string \| null (optional) | New note text, or `null` to clear                                            |
-| `tags`     | string[] (optional)       | Replace all tags with this list. Non-existent tags are created automatically |
+| Parameter    | Type                      | Description                                                                  |
+| ------------ | ------------------------- | ---------------------------------------------------------------------------- |
+| `task_id`    | string                    | OmniFocus task ID (returned by `get_tasks`)                                  |
+| `name`       | string (optional)         | New name for the task                                                        |
+| `due_date`   | string \| null (optional) | New due date in ISO 8601 format, or `null` to clear                          |
+| `defer_date` | string \| null (optional) | New defer (start) date in ISO 8601 format, or `null` to clear                |
+| `flagged`    | boolean (optional)        | Set flagged status                                                           |
+| `note`       | string \| null (optional) | New note text, or `null` to clear                                            |
+| `tags`       | string[] (optional)       | Replace all tags with this list. Non-existent tags are created automatically |
 
 **Example output:**
 

@@ -13,7 +13,13 @@ function formatCompletedTaskSummary(tasks: OmniFocusCompletedTask[]): string {
       if (t.project) parts.push(`  Project: ${t.project}`);
       if (t.flagged) parts.push(`  Flagged: yes`);
       if (t.dueDate) parts.push(`  Due: ${t.dueDate}`);
+      if (t.deferDate) parts.push(`  Defer: ${t.deferDate}`);
       parts.push(`  Completed: ${t.completionDate}`);
+      if (t.note) {
+        const preview =
+          t.note.length > 100 ? t.note.slice(0, 100) + "…" : t.note;
+        parts.push(`  Note: ${preview}`);
+      }
 
       if (t.tags.length) parts.push(`  Tags: ${t.tags.join(", ")}`);
       return parts.join("\n");
@@ -49,6 +55,8 @@ const JXA_SCRIPT = `
     const names = allTasks.name();
     const flaggedArr = allTasks.flagged();
     const dueDates = allTasks.dueDate();
+    const deferDates = allTasks.deferDate();
+    const notes = allTasks.note();
     const completionDates = allTasks.completionDate();
     const projectNames = allTasks.containingProject.name();
     const tagArrays = allTasks.tags.name();
@@ -72,6 +80,8 @@ const JXA_SCRIPT = `
         project: proj,
         flagged: flaggedArr[i],
         dueDate: dueDates[i] ? dueDates[i].toISOString() : null,
+        deferDate: deferDates[i] ? deferDates[i].toISOString() : null,
+        note: notes[i] || '',
         completionDate: completionDates[i].toISOString(),
         tags: tagArrays[i] || []
       });

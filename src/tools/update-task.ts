@@ -11,8 +11,13 @@ export const schema = {
     .string()
     .nullable()
     .optional()
+    .describe("New due date in ISO 8601 format, or null to clear the due date"),
+  defer_date: z
+    .string()
+    .nullable()
+    .optional()
     .describe(
-      "New due date in ISO 8601 format, or null to clear the due date",
+      "New defer (start) date in ISO 8601 format, or null to clear the defer date",
     ),
   flagged: z.boolean().optional().describe("Set flagged status"),
   note: z
@@ -30,17 +35,20 @@ export const schema = {
 
 type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
 
-export const handler = wrapHandler(async ({
-  task_id,
-  name,
-  due_date,
-  flagged,
-  note,
-  tags,
-}: HandlerArgs): Promise<CallToolResult> => {
-  const hasUpdate =
+export const handler = wrapHandler(
+  async ({
+    task_id,
+    name,
+    due_date,
+    defer_date,
+    flagged,
+    note,
+    tags,
+  }: HandlerArgs): Promise<CallToolResult> => {
+    const hasUpdate =
       name !== undefined ||
       due_date !== undefined ||
+      defer_date !== undefined ||
       flagged !== undefined ||
       note !== undefined ||
       tags !== undefined;
@@ -51,7 +59,7 @@ export const handler = wrapHandler(async ({
         content: [
           {
             type: "text",
-            text: "No properties to update. Provide at least one of: name, due_date, flagged, note, tags.",
+            text: "No properties to update. Provide at least one of: name, due_date, defer_date, flagged, note, tags.",
           },
         ],
       };
@@ -72,6 +80,21 @@ export const handler = wrapHandler(async ({
       }
     }
 
+    if (defer_date !== undefined && defer_date !== null) {
+      const parsed = new Date(defer_date);
+      if (isNaN(parsed.getTime())) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Invalid defer date: "${defer_date}". Use ISO 8601 format (e.g., '2026-03-15').`,
+            },
+          ],
+        };
+      }
+    }
+
     const data = {
       taskId: task_id,
       name: name ?? null,
@@ -81,6 +104,12 @@ export const handler = wrapHandler(async ({
           : due_date === null
             ? null
             : new Date(due_date).toISOString(),
+      deferDate:
+        defer_date === undefined
+          ? undefined
+          : defer_date === null
+            ? null
+            : new Date(defer_date).toISOString(),
       flagged: flagged ?? null,
       note: note === undefined ? undefined : note,
       tags: tags ?? null,
@@ -107,6 +136,10 @@ export const handler = wrapHandler(async ({
 
         if (__DATA__.dueDate !== undefined) {
           task.dueDate.set(__DATA__.dueDate !== null ? new Date(__DATA__.dueDate) : null);
+        }
+
+        if (__DATA__.deferDate !== undefined) {
+          task.deferDate.set(__DATA__.deferDate !== null ? new Date(__DATA__.deferDate) : null);
         }
 
         if (__DATA__.flagged !== null) {
@@ -141,6 +174,10 @@ export const handler = wrapHandler(async ({
 
         let dueDate = null;
         try { const d = task.dueDate(); if (d) dueDate = d.toISOString(); } catch(e) {}
+        let deferDate = null;
+        try { const d = task.deferDate(); if (d) deferDate = d.toISOString(); } catch(e) {}
+        let noteText = '';
+        try { noteText = task.note() || ''; } catch(e) {}
         let tagNames = [];
         try { tagNames = task.tags().map(tag => tag.name()); } catch(e) {}
         let projName = null;
@@ -153,13 +190,17 @@ export const handler = wrapHandler(async ({
           project: projName,
           flagged: task.flagged(),
           dueDate: dueDate,
+          deferDate: deferDate,
+          note: noteText,
           tags: tagNames
         });
       }
     `;
 
     const raw = await runJxaWithData(jxa, data);
-    const result = JSON.parse(raw) as OmniFocusUpdateResult | OmniFocusUpdateError;
+    const result = JSON.parse(raw) as
+      | OmniFocusUpdateResult
+      | OmniFocusUpdateError;
 
     if ("error" in result) {
       return {
@@ -178,9 +219,12 @@ export const handler = wrapHandler(async ({
     if (result.project) parts.push(`Project: ${result.project}`);
     if (result.flagged) parts.push("Flagged: yes");
     if (result.dueDate) parts.push(`Due: ${result.dueDate}`);
+    if (result.deferDate) parts.push(`Defer: ${result.deferDate}`);
+    if (result.note) parts.push(`Note: ${result.note}`);
     if (result.tags.length) parts.push(`Tags: ${result.tags.join(", ")}`);
 
-  return {
-    content: [{ type: "text", text: parts.join("\n") }],
-  };
-});
+    return {
+      content: [{ type: "text", text: parts.join("\n") }],
+    };
+  },
+);

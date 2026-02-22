@@ -24,14 +24,14 @@ const server = new McpServer({
 
 server.tool(
   "omnifocus_get_tasks",
-  "Get incomplete tasks from OmniFocus. Returns task ID, name, project, flagged status, due date, and tags.",
+  "Get incomplete tasks from OmniFocus. Returns task ID, name, project, flagged status, due date, defer date, note, and tags.",
   getTasks.schema,
   getTasks.handler,
 );
 
 server.tool(
   "omnifocus_get_completed_tasks",
-  "Get completed tasks from OmniFocus for a given time period. Returns task ID, name, project, flagged status, due date, completion date, and tags. Requires a 'since' date to bound the query.",
+  "Get completed tasks from OmniFocus for a given time period. Returns task ID, name, project, flagged status, due date, defer date, note, completion date, and tags. Requires a 'since' date to bound the query.",
   getCompletedTasks.schema,
   getCompletedTasks.handler,
 );
@@ -52,14 +52,14 @@ server.tool(
 
 server.tool(
   "omnifocus_add_task",
-  "Add a new task to OmniFocus. Creates the task in a specified project or in the Inbox if no project is given. Optionally sets due date, tags, flagged status, and a note.",
+  "Add a new task to OmniFocus. Creates the task in a specified project or in the Inbox if no project is given. Optionally sets due date, defer date, tags, flagged status, and a note.",
   addTask.schema,
   addTask.handler,
 );
 
 server.tool(
   "omnifocus_update_task",
-  "Update an existing task in OmniFocus by ID. Can change name, due date, flagged status, note, and tags.",
+  "Update an existing task in OmniFocus by ID. Can change name, due date, defer date, flagged status, note, and tags.",
   updateTask.schema,
   updateTask.handler,
 );

@@ -19,6 +19,12 @@ export const schema = {
     .describe(
       "Due date in ISO 8601 format (e.g. '2026-03-15' or '2026-03-15T17:00:00')",
     ),
+  defer_date: z
+    .string()
+    .optional()
+    .describe(
+      "Defer (start) date in ISO 8601 format (e.g. '2026-03-15' or '2026-03-15T17:00:00')",
+    ),
   tags: z
     .array(z.string())
     .optional()
@@ -30,15 +36,17 @@ export const schema = {
 
 type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
 
-export const handler = wrapHandler(async ({
-  task_name,
-  project,
-  note,
-  due_date,
-  tags,
-  flagged,
-}: HandlerArgs): Promise<CallToolResult> => {
-  if (due_date !== undefined) {
+export const handler = wrapHandler(
+  async ({
+    task_name,
+    project,
+    note,
+    due_date,
+    defer_date,
+    tags,
+    flagged,
+  }: HandlerArgs): Promise<CallToolResult> => {
+    if (due_date !== undefined) {
       const parsed = new Date(due_date);
       if (isNaN(parsed.getTime())) {
         return {
@@ -53,11 +61,27 @@ export const handler = wrapHandler(async ({
       }
     }
 
+    if (defer_date !== undefined) {
+      const parsed = new Date(defer_date);
+      if (isNaN(parsed.getTime())) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Invalid defer date: "${defer_date}". Use ISO 8601 format (e.g., '2026-03-15').`,
+            },
+          ],
+        };
+      }
+    }
+
     const data = {
       taskName: task_name,
       project: project ?? null,
       note: note ?? null,
       dueDate: due_date ? new Date(due_date).toISOString() : null,
+      deferDate: defer_date ? new Date(defer_date).toISOString() : null,
       tags: tags ?? [],
       flagged: flagged ?? null,
     };
@@ -70,6 +94,7 @@ export const handler = wrapHandler(async ({
         const props = { name: __DATA__.taskName };
         if (__DATA__.note !== null) props.note = __DATA__.note;
         if (__DATA__.dueDate !== null) props.dueDate = new Date(__DATA__.dueDate);
+        if (__DATA__.deferDate !== null) props.deferDate = new Date(__DATA__.deferDate);
         if (__DATA__.flagged !== null) props.flagged = __DATA__.flagged;
 
         const task = app.Task(props);
@@ -99,6 +124,10 @@ export const handler = wrapHandler(async ({
 
         let dueDate = null;
         try { const d = task.dueDate(); if (d) dueDate = d.toISOString(); } catch(e) {}
+        let deferDate = null;
+        try { const d = task.deferDate(); if (d) deferDate = d.toISOString(); } catch(e) {}
+        let noteText = '';
+        try { noteText = task.note() || ''; } catch(e) {}
         let tagNames = [];
         try { tagNames = task.tags().map(tag => tag.name()); } catch(e) {}
         let projName = null;
@@ -111,6 +140,8 @@ export const handler = wrapHandler(async ({
           project: projName,
           flagged: task.flagged(),
           dueDate: dueDate,
+          deferDate: deferDate,
+          note: noteText,
           tags: tagNames
         });
       }
@@ -137,9 +168,12 @@ export const handler = wrapHandler(async ({
     else parts.push("Project: Inbox");
     if (result.flagged) parts.push("Flagged: yes");
     if (result.dueDate) parts.push(`Due: ${result.dueDate}`);
+    if (result.deferDate) parts.push(`Defer: ${result.deferDate}`);
+    if (result.note) parts.push(`Note: ${result.note}`);
     if (result.tags.length) parts.push(`Tags: ${result.tags.join(", ")}`);
 
-  return {
-    content: [{ type: "text", text: parts.join("\n") }],
-  };
-});
+    return {
+      content: [{ type: "text", text: parts.join("\n") }],
+    };
+  },
+);

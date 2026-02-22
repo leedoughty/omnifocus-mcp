@@ -12,6 +12,12 @@ function formatTaskSummary(tasks: OmniFocusTask[]): string {
       if (t.project) parts.push(`  Project: ${t.project}`);
       if (t.flagged) parts.push(`  Flagged: yes`);
       if (t.dueDate) parts.push(`  Due: ${t.dueDate}`);
+      if (t.deferDate) parts.push(`  Defer: ${t.deferDate}`);
+      if (t.note) {
+        const preview =
+          t.note.length > 100 ? t.note.slice(0, 100) + "…" : t.note;
+        parts.push(`  Note: ${preview}`);
+      }
       if (t.tags.length) parts.push(`  Tags: ${t.tags.join(", ")}`);
       return parts.join("\n");
     })
@@ -38,6 +44,10 @@ const MAP_TASK = `
     try { projName = t.containingProject().name(); } catch(e) {}
     let dueDate = null;
     try { const d = t.dueDate(); if (d) dueDate = d.toISOString(); } catch(e) {}
+    let deferDate = null;
+    try { const d = t.deferDate(); if (d) deferDate = d.toISOString(); } catch(e) {}
+    let note = '';
+    try { note = t.note() || ''; } catch(e) {}
     let tagNames = [];
     try { tagNames = t.tags().map(tag => tag.name()); } catch(e) {}
 
@@ -47,6 +57,8 @@ const MAP_TASK = `
       project: projName,
       flagged: t.flagged(),
       dueDate: dueDate,
+      deferDate: deferDate,
+      note: note,
       tags: tagNames
     };
   }
