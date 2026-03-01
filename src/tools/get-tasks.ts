@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { runJxa, runJxaWithData } from "../lib/jxa.js";
+import { runJxaWithData } from "../lib/jxa.js";
 import { wrapHandler } from "../lib/wrap-handler.js";
 import type { OmniFocusTask } from "../types.js";
 
@@ -38,29 +38,49 @@ export const schema = {
 
 type HandlerArgs = { [K in keyof typeof schema]: z.infer<(typeof schema)[K]> };
 
-const MAP_TASK = `
-  function mapTask(t) {
-    let projName = null;
-    try { projName = t.containingProject().name(); } catch(e) {}
-    let dueDate = null;
-    try { const d = t.dueDate(); if (d) dueDate = d.toISOString(); } catch(e) {}
-    let deferDate = null;
-    try { const d = t.deferDate(); if (d) deferDate = d.toISOString(); } catch(e) {}
-    let note = '';
-    try { note = t.note() || ''; } catch(e) {}
-    let tagNames = [];
-    try { tagNames = t.tags().map(tag => tag.name()); } catch(e) {}
+const JXA_SCRIPT = `
+  function run() {
+    const app = Application('OmniFocus');
+    const doc = app.defaultDocument();
+    const allTasks = doc.flattenedTasks;
 
-    return {
-      id: t.id(),
-      name: t.name(),
-      project: projName,
-      flagged: t.flagged(),
-      dueDate: dueDate,
-      deferDate: deferDate,
-      note: note,
-      tags: tagNames
-    };
+    const ids = allTasks.id();
+    const names = allTasks.name();
+    const completedArr = allTasks.completed();
+    const droppedArr = allTasks.dropped();
+    const flaggedArr = allTasks.flagged();
+    const dueDates = allTasks.dueDate();
+    const deferDates = allTasks.deferDate();
+    const notes = allTasks.note();
+    const projectNames = allTasks.containingProject.name();
+    const tagArrays = allTasks.tags.name();
+
+    const projFilter = __DATA__.project ? __DATA__.project.toLowerCase() : null;
+    const tagFilter = __DATA__.tag ? __DATA__.tag.toLowerCase() : null;
+    const flaggedOnly = __DATA__.flagged_only;
+
+    const results = [];
+    for (let i = 0; i < ids.length; i++) {
+      if (completedArr[i] || droppedArr[i]) continue;
+      if (flaggedOnly && !flaggedArr[i]) continue;
+      const proj = projectNames[i] || null;
+      if (projFilter && (!proj || proj.toLowerCase() !== projFilter)) continue;
+      if (tagFilter) {
+        const tags = tagArrays[i] || [];
+        if (!tags.some(t => t.toLowerCase().indexOf(tagFilter) !== -1)) continue;
+      }
+      results.push({
+        id: ids[i],
+        name: names[i],
+        project: proj,
+        flagged: flaggedArr[i],
+        dueDate: dueDates[i] ? dueDates[i].toISOString() : null,
+        deferDate: deferDates[i] ? deferDates[i].toISOString() : null,
+        note: notes[i] || '',
+        tags: tagArrays[i] || []
+      });
+    }
+    return JSON.stringify(results);
   }
 `;
 
@@ -70,72 +90,12 @@ export const handler = wrapHandler(
     tag,
     flagged_only,
   }: HandlerArgs): Promise<CallToolResult> => {
-    const whoseClause = flagged_only
-      ? "{completed: false, dropped: false, flagged: true}"
-      : "{completed: false, dropped: false}";
-
-    let fetchBlock: string;
-    let postFilter = "";
-
-    if (project && tag) {
-      fetchBlock = `
-        const projFilter = __DATA__.project.toLowerCase();
-        const projects = doc.flattenedProjects.whose({name: {_contains: __DATA__.project}})();
-        const exactProjects = Array.from(projects).filter(p => p.name().toLowerCase() === projFilter);
-        let tasks = [];
-        for (const p of exactProjects) {
-          tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
-        }
-      `;
-      postFilter = `
-        const tagFilter = __DATA__.tag.toLowerCase();
-        tasks = tasks.filter(t => {
-          try {
-            return t.tags().some(tag => tag.name().toLowerCase().indexOf(tagFilter) !== -1);
-          } catch(e) { return false; }
-        });
-      `;
-    } else if (project) {
-      fetchBlock = `
-        const projFilter = __DATA__.project.toLowerCase();
-        const projects = doc.flattenedProjects.whose({name: {_contains: __DATA__.project}})();
-        const exactProjects = Array.from(projects).filter(p => p.name().toLowerCase() === projFilter);
-        let tasks = [];
-        for (const p of exactProjects) {
-          tasks = tasks.concat(p.flattenedTasks.whose(${whoseClause})());
-        }
-      `;
-    } else if (tag) {
-      fetchBlock = `
-        const tags = doc.flattenedTags.whose({name: {_contains: __DATA__.tag}})();
-        let tasks = [];
-        for (const tg of tags) {
-          tasks = tasks.concat(tg.tasks.whose(${whoseClause})());
-        }
-      `;
-    } else {
-      fetchBlock = `
-        let tasks = doc.flattenedTasks.whose(${whoseClause})();
-      `;
-    }
-
-    const jxa = `
-      function run() {
-        const app = Application('OmniFocus');
-        const doc = app.defaultDocument();
-
-        ${fetchBlock}
-        ${postFilter}
-
-        ${MAP_TASK}
-
-        return JSON.stringify(Array.from(tasks).map(mapTask));
-      }
-    `;
-
-    const data = { project: project ?? null, tag: tag ?? null };
-    const needsData = project || tag;
-    const raw = needsData ? await runJxaWithData(jxa, data) : await runJxa(jxa);
+    const data = {
+      project: project ?? null,
+      tag: tag ?? null,
+      flagged_only: flagged_only ?? false,
+    };
+    const raw = await runJxaWithData(JXA_SCRIPT, data);
     const tasks = JSON.parse(raw) as OmniFocusTask[];
 
     const summary = formatTaskSummary(tasks);
